@@ -1,0 +1,450 @@
+﻿CM Repo link:-
+
+
+wget https://archive.cloudera.com/cm7/7.4.4/repo-as-tarball/cm7.4.4-redhat7.tar.gz
+
+
+============================CONFIGURING WEBSERVER======================
+
+
+sudo apt update
+
+
+sudo apt install apache2 -y 
+
+
+sudo tar -xzf cloudera.tar
+
+
+sudo mv cloudera  /var/www/html
+
+
+=======================LAUNCH A CENTOS 7 MACHINE============================================
+
+
+sudo yum update -y
+
+
+sudo yum install wget -y
+
+
+sudo yum install nano -y
+
+
+sudo yum install httpd -y 
+
+
+sudo yum install python 3.6 -y
+
+
+sudo yum install zip -y
+
+
+sudo yum install unzip -y
+
+
+===================INSTALLING JAVA AND JDK============
+
+
+sudo yum install java-1.7.0-openjdk-devel -y
+
+
+wget https://s3.amazonaws.com/cloud-age/jdk-8u162-linux-x64.rpm
+
+
+sudo rpm -Uv jdk-8u162-linux-x64.rpm
+
+
+======================DOWNLOADING REQUIRED SCRIPTS======================================
+
+
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/check-pre-req.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_iptables.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_ipv6.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_selinux.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_thp.sh     
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_lzo.sh   
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_nscd.sh  
+wget https://access.redhat.com/solutions/1489
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_ntp.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_tools.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/remove_tuned.sh
+wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/tune_kernel.sh
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/sssd.conf                    
+wget https://mycloudage.s3.ap-south-1.amazonaws.com/nscd.conf                   
+
+
+===========EXECUTING THE DOWNLOADING SCRIPTS===========
+
+
+sudo sh disable_iptables.sh
+
+
+sudo sh disable_ipv6.sh
+
+
+sudo sh disable_selinux.sh
+
+
+sudo sh disable_thp.sh
+
+
+sudo sh install_lzo.sh
+                                                                                               
+sudo sh install_nscd.sh
+             
+sudo sh install_ntp.sh
+
+
+sudo sh install_tools.sh
+
+
+sudo sh remove_tuned.sh
+
+
+sudo sh tune_kernel.sh
+
+
+sudo sysctl vm.swappiness=1
+
+
+sudo yum install bind-utils -y
+
+
+sudo service postfix stop
+
+
+sudo postfix set-permissions    //might failed no issue
+
+
+sudo service postfix start      //might failed no issue 
+
+
+==============FOR KEEPING SWAPPINESS=1 ALL THE TIME=============
+
+
+sudo nano /etc/sysctl.conf
+
+net.ipv6.conf.all.disable_ipv6 =1
+net.ipv6.conf.default.disable_ipv6 =1
+net.ipv6.conf.lo.disable_ipv6 =1
+vm.swappiness=1
+
+
+sudo sysctl -p
+
+
+=====NOW CHECK FOR PRE REQUISITES=========
+
+
+sudo sh check-pre-req.sh 
+
+
+*****SSSD***** 
+
+
+sudo yum install sssd -y
+sudo mv sssd.conf /etc/sssd/
+sudo chown root:root /etc/sssd/sssd.conf
+sudo chmod 600 /etc/sssd/sssd.conf
+sudo systemctl enable sssd
+sudo systemctl start sssd
+sudo authconfig --enablesssdauth --enablesssd --updateall
+
+
+**********NSCD********
+
+
+sudo mv nscd.conf /etc/
+
+
+=====NOW CHECK FOR PRE REQUISITES=========
+
+
+sudo sh check-pre-req.sh 
+
+
+==============INSTALLING JDBC CONNECTORS===============
+
+
+
+
+wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.46.tar.gz
+
+
+tar -zxf mysql-connector-java-5.1.46.tar.gz
+
+
+sudo mkdir -p /usr/share/java
+
+
+cd mysql-connector-java-5.1.46
+
+
+sudo cp /home/centos/mysql-connector-java-5.1.46/mysql-connector-java-5.1.46-bin.jar /usr/share/java/mysql-connector-java.jar
+
+
+cd
+
+
+=====NOW CHECK FOR PRE REQUISITES=========
+
+
+sudo sh check-pre-req.sh
+
+
+======================================================Passwordless SSH=============
+
+
+sudo nano /etc/ssh/ssh_config
+
+
+
+StrictHostKeyChecking no
+ UserKnownHostsFile=/dev/null
+
+
+-------------------------------------------------------------
+
+
+echo -e 'y\n'| ssh-keygen -t rsa -P "" -f $HOME/.ssh/id_rsa
+
+
+cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+
+
+sudo chmod 600 ~/.ssh/config
+
+
+ssh localhost
+
+
+exit
+
+
+--------------------------------
+-------------------------------
+*******************************
+MAKE IMAGE and launch machines.
+*******************************
+*******************************
+*******************************
+Then start nexr process ....
+
+
+
+
+=================INSTALLING MYSQL SERVER AND DAEMONS=========
+
+
+wget https://dev.mysql.com/get/mysql57-community-release-el7-9.noarch.rpm
+
+
+md5sum mysql57-community-release-el7-9.noarch.rpm
+
+
+sudo rpm -ivh mysql57-community-release-el7-9.noarch.rpm
+
+
+sudo yum install mysql-server --nogpgcheck -y 
+
+
+sudo systemctl start mysqld 
+
+
+sudo systemctl status mysqld
+
+
+sudo grep 'temporary password' /var/log/mysqld.log
+
+
+sudo mysql_secure_installation
+
+
+Enter password for user root: :paste the temporary password which you get in above command
+New password: P@ssw0rd
+Re-enter new Password: P@ssw0rd
+Change the root password? [Y/n] n
+Remove anonymous users? [Y/n] y
+Disallow root login remotely? [Y/n] y
+Remove test database and access it? [Y/n] n
+Reload privilege tables n? [Y/n] y
+
+
+============================================CREATING DATABASES ==================================Go on DB
+
+
+mysql -u root -p 
+
+
+show databases;
+
+
+SHOW GLOBAL VARIABLES LIKE '%ssl%'; 
+
+
+STATUS;
+
+
+CREATE DATABASE scm DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+GRANT ALL ON scm.* TO 'scm'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database hive DEFAULT CHARACTER SET utf8;
+grant all on hive.* TO 'hive'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database hue DEFAULT CHARACTER SET utf8;
+grant all on hue.* TO 'hue'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database rman DEFAULT CHARACTER SET utf8;
+grant all on rman.* TO 'rman'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database navs DEFAULT CHARACTER SET utf8;
+grant all on navs.* TO 'navs'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database navms DEFAULT CHARACTER SET utf8;
+grant all on navms.* TO 'navms'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database oozie DEFAULT CHARACTER SET utf8;
+grant all on oozie.* TO 'oozie'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database actmo DEFAULT CHARACTER SET utf8;
+grant all on actmo.* TO 'actmo'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database rangeradmin DEFAULT CHARACTER SET utf8;
+grant all on rangeradmin.* TO 'ranger'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+create database rangerkms DEFAULT CHARACTER SET utf8;
+grant all on rangerkms.* TO 'kms'@'%' IDENTIFIED BY 'P@ssw0rd';
+
+
+CREATE USER 'temp'@'%' IDENTIFIED BY 'P@ssw0rd';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER ON *.* TO 'temp'@'%' WITH GRANT OPTION;
+
+
+show databases;
+
+
+exit;
+
+
+=====================================CONFIGURATION OF CM=========================================================Go to CM
+
+
+(Public IP of WS_UBUNTU)
+sudo nano /etc/yum.repos.d/cloudera-manager.repo
+
+
+
+
+*Repo CDP*-------------Paste below 
+
+
+[cloudera-manager]
+# Packages for Cloudera Manager, Version 5, on RedHat or CentOS 7 x86_64
+name=Cloudera Manager
+baseurl=http://172.31.32.200/cloudera/
+gpgkey =http://172.31.32.200/cloudera/RPM-GPG-KEY-cloudera
+gpgcheck = 0
+
+
+sudo yum clean all
+
+
+sudo yum makecache
+
+
+sudo yum install cloudera-manager-server cloudera-manager-daemons cloudera-manager-agent -y
+
+
+****************************************For Connector*******************************************
+
+
+sudo yum install java-1.8.0-openjdk-devel -y
+
+
+wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-java-8.0.26-1.el7.noarch.rpm
+
+
+sudo rpm -ivh mysql-connector-java-8.0.26-1.el7.noarch.rpm
+
+
+sudo /opt/cloudera/cm/schema/scm_prepare_database.sh mysql -h ip-172-31-39-247.ap-south-1.compute.internal scm scm P@ssw0rd
+
+
+
+
+**************************************************************************
+__________________________________________ERROR  of ssl in java 1.7.0____________________________________
+
+
+sudo nano /etc/my.cnf
+
+
+#To disable SSL, add or modify the following lines under the [mysqld] section:
+skip-ssl
+
+
+sudo systemctl restart mysqld
+-----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+sudo chkconfig httpd on
+
+
+sudo service httpd start
+
+
+sudo service httpd status
+
+
+sudo service cloudera-scm-server start
+
+
+sudo service cloudera-scm-server status
+
+
+sudo yum list *cloudera*   
+
+
+(list cloudera service installed)
+
+
+
+
+===========Now to check if server has started or not ===========================
+
+
+cat /etc/cloudera-scm-server/db.properties
+
+
+sudo tail -f /var/log/cloudera-scm-server/cloudera-scm-server.log
+
+
+sudo netstat -tunlp
+
+
+sudo netstat -tunlp | grep 7180
+
+
+=========================ips=========================================
+
+172.31.39.247
+172.31.39.54
+172.31.32.177
+172.31.39.111
+172.31.35.123
+172.31.35.56
+172.31.45.214
