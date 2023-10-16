@@ -1,3 +1,5 @@
+// Prints all private ips that later can be used to enter on CM Web UI
+
 output "CM_Private_ip" {
   description = "CM Private ip"
   value       = aws_instance.WS_CM_DB.private_ip
@@ -28,6 +30,7 @@ output "DN3_Private_ip" {
 }
 
 
+// Prints all private ips that later can be used to access any Web UI
 
 output "CM_Public" {
   description = "CM Public"
