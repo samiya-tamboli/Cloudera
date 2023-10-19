@@ -48,178 +48,96 @@ sudo yum install unzip -y
 
 sudo yum install java-1.7.0-openjdk-devel -y
 
-
-wget https://s3.amazonaws.com/cloud-age/jdk-8u162-linux-x64.rpm
-
+wget --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u162-b12/0da788060d494f5095bf8624735fa2f1/jdk-8u162-linux-x64.rpm"
 
 sudo rpm -Uv jdk-8u162-linux-x64.rpm
 
 
-======================DOWNLOADING REQUIRED SCRIPTS======================================
+======================PRE-REQUISITES======================================
 
+Disable SELINUX-----------------------------------------------------------------------------------
 
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/check-pre-req.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_iptables.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_ipv6.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_selinux.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/disable_thp.sh     
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_lzo.sh   
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_nscd.sh  
-wget https://access.redhat.com/solutions/1489
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_ntp.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/install_tools.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/remove_tuned.sh
-wget https://s3.amazonaws.com/cloud-age/MIT_kerberos/prerequisite/tune_kernel.sh
-wget https://mycloudage.s3.ap-south-1.amazonaws.com/sssd.conf                    
-wget https://mycloudage.s3.ap-south-1.amazonaws.com/nscd.conf                   
+sudo apt-get install selinux-utils 
+setenforce 0
+getenforce
 
+Disable ipv6-----------------------------------------------------------------------------------
 
-===========EXECUTING THE DOWNLOADING SCRIPTS===========
-
-
-sudo sh disable_iptables.sh
-
-
-sudo sh disable_ipv6.sh
-
-
-sudo sh disable_selinux.sh
-
-
-sudo sh disable_thp.sh
-
-
-sudo sh install_lzo.sh
-                                                                                               
-sudo sh install_nscd.sh
-             
-sudo sh install_ntp.sh
-
-
-sudo sh install_tools.sh
-
-
-sudo sh remove_tuned.sh
-
-
-sudo sh tune_kernel.sh
-
-
-sudo sysctl vm.swappiness=1
-
-
-sudo yum install bind-utils -y
-
-
-sudo service postfix stop
-
-
-sudo postfix set-permissions    //might failed no issue
-
-
-sudo service postfix start      //might failed no issue 
-
-
-==============FOR KEEPING SWAPPINESS=1 ALL THE TIME=============
-
-
-sudo nano /etc/sysctl.conf
-
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+sudo su -c 'cat >>/etc/sysctl.conf <<EOL
 net.ipv6.conf.all.disable_ipv6 =1
 net.ipv6.conf.default.disable_ipv6 =1
 net.ipv6.conf.lo.disable_ipv6 =1
 vm.swappiness=1
-
-
+EOL'
 sudo sysctl -p
 
+Disable FireWall iptables-----------------------------------------------------------------------------------
 
-=====NOW CHECK FOR PRE REQUISITES=========
+sudo iptables -L -n -v 
+sudo iptables-save > firewall.rules 
+sudo ufw status verbose 
 
+Disable THP -----------------------------------------------------------------------------------
 
-sudo sh check-pre-req.sh 
+cat /sys/kernel/mm/transparent_hugepage/defrag
+sudo su -c 'cat >>/etc/rc.local <<EOL
+if test -f /sys/kernel/mm/transparent_hugepage/enabled; then
+  echo never > /sys/kernel/mm/transparent_hugepage/enabled
+fi
+if test -f /sys/kernel/mm/transparent_hugepage/defrag; then
+   echo never > /sys/kernel/mm/transparent_hugepage/defrag 
+fi
+exit 0
+EOL'
+sudo -i
+source /etc/rc.local
 
+Set Swappiness-----------------------------------------------------------------------------------
 
-*****SSSD***** 
+sudo sysctl -a | grep vm.swappiness
+sudo su -c 'cat >>/etc/sysctl.conf <<EOL
+'vm.swappiness=1'
+EOL'
+sudo sysctl -p
 
+Configure NTP-----------------------------------------------------------------------------------
 
-sudo yum install sssd -y
-sudo mv sssd.conf /etc/sssd/
-sudo chown root:root /etc/sssd/sssd.conf
-sudo chmod 600 /etc/sssd/sssd.conf
-sudo systemctl enable sssd
-sudo systemctl start sssd
-sudo authconfig --enablesssdauth --enablesssd --updateall
+sudo yum install ntp -y
+sudo timedatectl set-timezone Asia/Kolkata
 
+Root Reserved Space-----------------------------------------------------------------------------------
 
-**********NSCD********
+sudo tune2fs -m 0 /dev/nvme0n1p1
+sudo tune2fs -l /dev/nvme0n1p1 | grep "Reserved block count"
 
+SSH Password less logins-----------------------------------------------------------------------------------
 
-sudo mv nscd.conf /etc/
+nano .profile
+eval `ssh-agent` ssh-add /home/centos/.ssh/Powershell.pem
+source .profile
 
+StrictHostKeyChecking no-----------------------------------------------------------------------------------
 
-=====NOW CHECK FOR PRE REQUISITES=========
-
-
-sudo sh check-pre-req.sh 
+sudo nano /etc/ssh/ssh_config
+---( Uncomment-> StrictHostKeyChecking no)--- 
+                                        ---or---
+nano /.ssh/config
+Host *
+StrictHostKeyChecking no
+UserKnownHostsFile=/dev/null
+sudo service ssh restart
 
 
 ==============INSTALLING JDBC CONNECTORS===============
 
 
-
-
 wget https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.46.tar.gz
-
-
 tar -zxf mysql-connector-java-5.1.46.tar.gz
-
-
 sudo mkdir -p /usr/share/java
-
-
 cd mysql-connector-java-5.1.46
-
-
 sudo cp /home/centos/mysql-connector-java-5.1.46/mysql-connector-java-5.1.46-bin.jar /usr/share/java/mysql-connector-java.jar
-
-
 cd
-
-
-=====NOW CHECK FOR PRE REQUISITES=========
-
-
-sudo sh check-pre-req.sh
-
-
-======================================================Passwordless SSH=============
-
-
-sudo nano /etc/ssh/ssh_config
-
-
-
-StrictHostKeyChecking no
- UserKnownHostsFile=/dev/null
-
-
--------------------------------------------------------------
-
-
-echo -e 'y\n'| ssh-keygen -t rsa -P "" -f $HOME/.ssh/id_rsa
-
-
-cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
-
-
-sudo chmod 600 ~/.ssh/config
-
-
-ssh localhost
-
-
-exit
 
 
 --------------------------------
@@ -229,7 +147,7 @@ MAKE IMAGE and launch machines.
 *******************************
 *******************************
 *******************************
-Then start nexr process ....
+Then start next process ....
 
 
 
@@ -351,8 +269,8 @@ sudo nano /etc/yum.repos.d/cloudera-manager.repo
 [cloudera-manager]
 # Packages for Cloudera Manager, Version 5, on RedHat or CentOS 7 x86_64
 name=Cloudera Manager
-baseurl=http://172.31.32.200/cloudera/
-gpgkey =http://172.31.32.200/cloudera/RPM-GPG-KEY-cloudera
+baseurl=http://private_ip_of_repo_server/cloudera/
+gpgkey =http://private_ip_of_repo_server/cloudera/RPM-GPG-KEY-cloudera
 gpgcheck = 0
 
 
@@ -433,18 +351,6 @@ cat /etc/cloudera-scm-server/db.properties
 sudo tail -f /var/log/cloudera-scm-server/cloudera-scm-server.log
 
 
-sudo netstat -tunlp
-
-
 sudo netstat -tunlp | grep 7180
 
 
-=========================ips=========================================
-
-172.31.39.247
-172.31.39.54
-172.31.32.177
-172.31.39.111
-172.31.35.123
-172.31.35.56
-172.31.45.214
